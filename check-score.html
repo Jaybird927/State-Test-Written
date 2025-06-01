@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Your Score</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            background-color: #f5f7fa;
+            color: #2d3748;
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 2rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            max-width: 200px;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5rem;
+            margin: 0 auto;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #4299e1;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            background-color: #4299e1;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: #3182ce;
+        }
+
+        .error-message {
+            color: #e53e3e;
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .result-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result-container.visible {
+            display: block;
+        }
+
+        .result-container.good {
+            background-color: #f0fff4;
+            border: 2px solid #48bb78;
+        }
+
+        .result-container.average {
+            background-color: #fffaf0;
+            border: 2px solid #ed8936;
+        }
+
+        .result-container.poor {
+            background-color: #fff5f5;
+            border: 2px solid #f56565;
+        }
+
+        .score {
+            font-size: 3rem;
+            font-weight: 600;
+            margin: 1rem 0;
+            animation: bounce 1s ease;
+        }
+
+        .message {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            animation: confetti-fall 3s ease-in infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-30px);
+            }
+            60% {
+                transform: translateY(-15px);
+            }
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .encouragement {
+            font-size: 1.1rem;
+            color: #4a5568;
+            margin-top: 1rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Check Your Score</h1>
+        <div class="input-group">
+            <label for="code-input">Enter your 3-digit code:</label>
+            <input type="text" id="code-input" maxlength="3" placeholder="ABC">
+            <div class="error-message" id="code-error">Invalid code. Please try again.</div>
+        </div>
+        <button class="btn" id="check-btn">Check Score</button>
+        <div class="result-container" id="result-container">
+            <div class="message" id="message"></div>
+            <div class="score" id="score"></div>
+            <div class="encouragement" id="encouragement"></div>
+        </div>
+    </div>
+
+    <script>
+        // Load data from server
+        async function loadData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                return {
+                    studentCodes: data.studentCodes || {},
+                    testResults: data.testResults || []
+                };
+            } catch (error) {
+                console.error('Error loading data:', error);
+                return {
+                    studentCodes: {},
+                    testResults: []
+                };
+            }
+        }
+
+        // Find student by code
+        async function findStudentByCode(code) {
+            const data = await loadData();
+            const studentCodes = data.studentCodes || {};
+            
+            // Find the student with this code
+            const student = Object.entries(studentCodes).find(([_, studentCode]) => studentCode === code);
+            if (!student) return null;
+
+            // Find their most recent result
+            const testResults = data.testResults || [];
+            const studentResults = testResults.filter(r => r.name === student[0]);
+            if (studentResults.length === 0) return null;
+
+            // Sort by date and get the most recent
+            const latestResult = studentResults.sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+            )[0];
+
+            return {
+                name: student[0],
+                result: latestResult
+            };
+        }
+
+        // Create confetti
+        function createConfetti() {
+            const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 3 + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+
+        // Show result
+        function showResult(score, studentName) {
+            const container = document.getElementById('result-container');
+            const message = document.getElementById('message');
+            const scoreElement = document.getElementById('score');
+            const encouragement = document.getElementById('encouragement');
+
+            container.className = 'result-container';
+            container.classList.add('visible');
+
+            if (score >= 45) {
+                container.classList.add('good');
+                message.textContent = `Outstanding, ${studentName}!`;
+                createConfetti();
+                encouragement.textContent = 'You\'re a geography master! 🌟';
+            } else if (score >= 35) {
+                container.classList.add('average');
+                message.textContent = `Great job, ${studentName}!`;
+                encouragement.textContent = 'You\'re getting there! Keep practicing! 💪';
+            } else {
+                container.classList.add('poor');
+                message.textContent = `Keep practicing, ${studentName}!`;
+                encouragement.textContent = 'Don\'t give up! Every attempt makes you better! 📚';
+            }
+
+            scoreElement.textContent = `${score}/50`;
+        }
+
+        // Check code
+        async function checkCode() {
+            const code = document.getElementById('code-input').value.trim().toUpperCase();
+            if (!code) {
+                showError('Please enter a code');
+                return;
+            }
+
+            const student = await findStudentByCode(code);
+            if (!student) {
+                showError('Invalid code');
+                return;
+            }
+
+            showResult(student.result.score, student.name);
+        }
+
+        // Update event listener
+        document.getElementById('check-btn').addEventListener('click', checkCode);
+        document.getElementById('code-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkCode();
+            }
+        });
+
+        // Handle input
+        document.getElementById('code-input').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+            document.getElementById('code-error').classList.remove('visible');
+        });
+
+        // Show error message
+        function showError(message) {
+            const error = document.getElementById('code-error');
+            error.textContent = message;
+            error.classList.add('visible');
+        }
+    </script>
+</body>
+</html> 

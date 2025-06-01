@@ -1,0 +1,75 @@
+{
+  "testResults": [
+    {
+      "name": "Dad",
+      "score": 1,
+      "capitalizationErrors": 0,
+      "date": "6/1/2025",
+      "answers": {
+        "Maine": "Augusta",
+        "Colorado": "",
+        "Delaware": "",
+        "Alabama": "",
+        "Nebraska": "",
+        "Georgia": "",
+        "Wisconsin": "",
+        "North Carolina": "",
+        "Arkansas": "",
+        "North Dakota": "",
+        "Vermont": "",
+        "Indiana": "",
+        "Connecticut": "",
+        "Utah": "",
+        "Ohio": "",
+        "Florida": "",
+        "South Carolina": "",
+        "Idaho": "",
+        "West Virginia": "",
+        "Arizona": "",
+        "Virginia": "",
+        "New York": "",
+        "Louisiana": "",
+        "Washington": "",
+        "South Dakota": "",
+        "Alaska": "",
+        "Iowa": "",
+        "California": "",
+        "Wyoming": "",
+        "Tennessee": "",
+        "Maryland": "",
+        "Massachusetts": "",
+        "New Mexico": "",
+        "New Jersey": "",
+        "Rhode Island": "",
+        "Mississippi": "",
+        "Minnesota": "",
+        "Illinois": "",
+        "Missouri": "",
+        "Montana": "",
+        "Hawaii": "",
+        "Nevada": "",
+        "Michigan": "",
+        "Oklahoma": "",
+        "Kansas": "",
+        "Oregon": "",
+        "New Hampshire": "",
+        "Kentucky": "",
+        "Texas": "",
+        "Pennsylvania": ""
+      }
+    }
+  ],
+  "homeroomTeachers": [
+    "Jack"
+  ],
+  "classStudents": {
+    "Jack": [
+      "Mom",
+      "Dad",
+      "Alex"
+    ]
+  },
+  "studentCodes": {
+    "Dad": "2XJ"
+  }
+}
