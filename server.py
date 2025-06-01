@@ -1,86 +1,52 @@
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from flask import Flask, request, jsonify, send_file
 import json
 import os
 import socket
 from urllib.parse import urlparse, parse_qs
 import sys
 
+app = Flask(__name__)
+
+@app.route('/api/data', methods=['GET', 'POST', 'OPTIONS'])
+def handle_data():
+    if request.method == 'OPTIONS':
+        return '', 200
+    
+    if request.method == 'GET':
+        try:
+            with open('data.json', 'r') as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {
+                "testResults": [],
+                "homeroomTeachers": ["Admin"],
+                "classStudents": {},
+                "studentCodes": {}
+            }
+            with open('data.json', 'w') as f:
+                json.dump(data, f, indent=2)
+        return jsonify(data)
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            with open('data.json', 'w') as f:
+                json.dump(data, f, indent=2)
+            return jsonify({"status": "success"})
+        except Exception as e:
+            return str(e), 500
+
+@app.route('/', defaults={'path': '50-state-test.html'})
+@app.route('/<path:path>')
+def serve_static(path):
+    try:
+        return send_file(path)
+    except:
+        return 'File not found', 404
+
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('localhost', port)) == 0
-
-class StateTestHandler(BaseHTTPRequestHandler):
-    def _set_headers(self, content_type='text/html'):
-        self.send_response(200)
-        self.send_header('Content-type', content_type)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.end_headers()
-
-    def do_OPTIONS(self):
-        self._set_headers()
-        self.end_headers()
-
-    def do_GET(self):
-        parsed_path = urlparse(self.path)
-        path = parsed_path.path
-
-        # Handle API requests
-        if path == '/api/data':
-            self._set_headers('application/json')
-            try:
-                with open('data.json', 'r') as f:
-                    data = json.load(f)
-            except FileNotFoundError:
-                # Create default data if file doesn't exist
-                data = {
-                    "testResults": [],
-                    "homeroomTeachers": ["Admin"],
-                    "classStudents": {},
-                    "studentCodes": {}
-                }
-                with open('data.json', 'w') as f:
-                    json.dump(data, f, indent=2)
-            self.wfile.write(json.dumps(data).encode())
-            return
-
-        # Handle static files
-        if path == '/':
-            path = '/50-state-test.html'
-        
-        try:
-            with open(path[1:], 'rb') as f:
-                content = f.read()
-                content_type = 'text/html'
-                if path.endswith('.js'):
-                    content_type = 'application/javascript'
-                elif path.endswith('.css'):
-                    content_type = 'text/css'
-                self._set_headers(content_type)
-                self.wfile.write(content)
-        except FileNotFoundError:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b'File not found')
-
-    def do_POST(self):
-        if self.path == '/api/data':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            try:
-                data = json.loads(post_data.decode())
-                with open('data.json', 'w') as f:
-                    json.dump(data, f, indent=2)
-                self._set_headers('application/json')
-                self.wfile.write(json.dumps({"status": "success"}).encode())
-            except Exception as e:
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(str(e).encode())
-        else:
-            self.send_response(404)
-            self.end_headers()
 
 def get_local_ip():
     try:
@@ -99,17 +65,15 @@ def run_server(port=5000):
         sys.exit(1)
         
     server_address = ('0.0.0.0', port)  # Bind to all network interfaces
-    httpd = HTTPServer(server_address, StateTestHandler)
     local_ip = get_local_ip()
     print(f"\nServer running at:")
     print(f"Local:   http://localhost:{port}")
     print(f"Network: http://{local_ip}:{port}")
     print("\nPress Ctrl+C to stop the server")
     try:
-        httpd.serve_forever()
+        app.run(host='0.0.0.0', port=port)
     except KeyboardInterrupt:
         print("\nShutting down server...")
-        httpd.server_close()
 
 if __name__ == '__main__':
     run_server() 
