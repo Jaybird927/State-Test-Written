@@ -7,31 +7,26 @@ import sys
 
 app = Flask(__name__)
 
+# In-memory storage
+data_store = {
+    "testResults": [],
+    "homeroomTeachers": ["Admin"],
+    "classStudents": {},
+    "studentCodes": {}
+}
+
 @app.route('/api/data', methods=['GET', 'POST', 'OPTIONS'])
 def handle_data():
     if request.method == 'OPTIONS':
         return '', 200
     
     if request.method == 'GET':
-        try:
-            with open('data.json', 'r') as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            data = {
-                "testResults": [],
-                "homeroomTeachers": ["Admin"],
-                "classStudents": {},
-                "studentCodes": {}
-            }
-            with open('data.json', 'w') as f:
-                json.dump(data, f, indent=2)
-        return jsonify(data)
+        return jsonify(data_store)
     
     elif request.method == 'POST':
         try:
-            data = request.get_json()
-            with open('data.json', 'w') as f:
-                json.dump(data, f, indent=2)
+            global data_store
+            data_store = request.get_json()
             return jsonify({"status": "success"})
         except Exception as e:
             return str(e), 500
