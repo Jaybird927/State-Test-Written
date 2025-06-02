@@ -4,16 +4,45 @@ import os
 import socket
 from urllib.parse import urlparse, parse_qs
 import sys
+from pymongo import MongoClient
+from dotenv import load_dotenv
+from bson import json_util
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 
-# In-memory storage
-data_store = {
-    "testResults": [],
-    "homeroomTeachers": ["Admin"],
-    "classStudents": {},
-    "studentCodes": {}
-}
+# MongoDB setup
+try:
+    client = MongoClient(os.getenv('MONGODB_URI', 'mongodb://localhost:27017/'))
+    db = client['state_test_db']
+    collection = db['test_data']
+except Exception as e:
+    print(f"Error connecting to MongoDB: {e}")
+    # Fallback to in-memory storage if MongoDB is not available
+    collection = None
+
+def get_data():
+    if collection:
+        data = collection.find_one({'_id': 'main'})
+        if data:
+            return json.loads(json_util.dumps(data))
+    return {
+        "testResults": [],
+        "homeroomTeachers": ["Admin"],
+        "classStudents": {},
+        "studentCodes": {}
+    }
+
+def save_data(data):
+    if collection:
+        collection.update_one(
+            {'_id': 'main'},
+            {'$set': data},
+            upsert=True
+        )
+    return True
 
 @app.route('/api/data', methods=['GET', 'POST', 'OPTIONS'])
 def handle_data():
@@ -21,12 +50,12 @@ def handle_data():
         return '', 200
     
     if request.method == 'GET':
-        return jsonify(data_store)
+        return jsonify(get_data())
     
     elif request.method == 'POST':
         try:
-            global data_store
-            data_store = request.get_json()
+            data = request.get_json()
+            save_data(data)
             return jsonify({"status": "success"})
         except Exception as e:
             return str(e), 500
@@ -59,7 +88,6 @@ def run_server(port=5000):
         print(f"Error: Port {port} is already in use. Please make sure no other server is running.")
         sys.exit(1)
         
-    server_address = ('0.0.0.0', port)  # Bind to all network interfaces
     local_ip = get_local_ip()
     print(f"\nServer running at:")
     print(f"Local:   http://localhost:{port}")
